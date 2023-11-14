@@ -15,11 +15,6 @@ const baseUrl = "https://www.cinemark.com/theatres"
 const defaultRegion = "nc-raleigh"
 const defaultTheatre = "cinemark-bistro-raleigh"
 
-type Film struct {
-	Name string
-	Link string
-}
-
 func ScrapeFunc() {
 	thisWeeksMovies()
 }
