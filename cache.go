@@ -5,11 +5,10 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"strings"
+	"regexp"
 )
 
 const cacheDir = "cache"
-
 
 func LoadOrCacheHtml(url string) string {
 	filename := urlToFilename(url)
@@ -20,7 +19,8 @@ func LoadOrCacheHtml(url string) string {
 }
 
 func urlToFilename(url string) string {
-	return strings.ReplaceAll(url, "/", "_") + ".html"
+	m1 := regexp.MustCompile(`[^a-zA-Z0-9_\-\.]+`)
+	return m1.ReplaceAllString(url, "_") + ".html"
 }
 
 func getAndSaveHtml(url, filename string) {
@@ -58,7 +58,6 @@ func getCacheFileContents(filename string) string {
 	return string(content)
 }
 
-
 func fileExists(filename string) bool {
 	filePath := getCacheFilepath(filename)
 	_, err := os.Stat(filePath)
@@ -74,7 +73,6 @@ func fileExists(filename string) bool {
 	}
 	return false
 }
-
 
 func getCacheFilepath(filename string) string {
 	return fmt.Sprintf("./%s/%s", cacheDir, filename)

@@ -1,8 +1,8 @@
 package main
 
 type Film struct {
-	Name string
-	Link string
+	Title     string
+	Link      string
 	PosterUrl string
 }
 

@@ -20,32 +20,44 @@ func ScrapeFunc() {
 }
 
 func thisWeeksMovies() {
+	currentTime := time.Now().AddDate(0, 0, 3)
+	lastDay := time.Now().AddDate(0, 0, 6-int(currentTime.Weekday()))
+	fmt.Println(currentTime)
+	fmt.Println(lastDay)
 
-	currentDate := time.Now().Format("2006-01-02")
-	fmt.Println(buildUrl(defaultRegion, defaultTheatre, currentDate))
+	for currentDay := currentTime; !currentDay.After(lastDay) || isSameDay(currentDay, lastDay); currentDay = currentDay.AddDate(0, 0, 1) {
+		fmt.Printf("%s\n", currentDay.Format("2006-01-02"))
+	}
+}
 
-	// requestUrl := baseUrl + authorPath
-	// doc := GetSoup(requestUrl)
-	// authorNodes := QueryAll(doc, ".body ul li")
-	// authors := make([]*Author, 0)
-	// for _, authorNode := range authorNodes {
-	// 	pTags := QueryAll(authorNode, "p")
-	// 	if len(pTags) < 1 {
-	// 		fmt.Println("There's no author name here... Hm.")
-	// 		continue
-	// 	}
-	// 	if len(pTags) < 2 {
-	// 		fmt.Println("This author has no citations")
-	// 	}
-	// 	authorName := TrimLeadingAsterisks(GetText(pTags[0]))
-	// 	credits := Map2(pTags[1:], GetInt)
-	// 	author := &Author{
-	// 		Name:    authorName,
-	// 		Credits: credits,
-	// 	}
-	// 	authors = append(authors, author)
-	// }
-	// return authors
+func getMovieForDate(currentDate string) {
+	// Date in the format "2006-01-02"
+	url := buildUrl(defaultRegion, defaultTheatre, currentDate)
+	soup := GetSoup(url)
+	filmNodes := QueryAll(soup, "#showTimes .showtimeMovieBlock")
+	fmt.Println(len(filmNodes))
+	for _, filmNode := range filmNodes {
+		film := &Film{
+			Title:     getTitle(filmNode),
+			Link:      getLink(filmNode),
+			PosterUrl: getPosterUrl(filmNode),
+		}
+		fmt.Println(film)
+	}
+}
+
+func getTitle(filmNode *html.Node) string {
+	return GetText(Query(filmNode, ".movieLink h3"))
+}
+
+func getLink(filmNode *html.Node) string {
+	linkNode := Query(filmNode, ".movieLink")
+	return AttrOr(linkNode, "href", "")
+}
+
+func getPosterUrl(filmNode *html.Node) string {
+	pictureNode := Query(filmNode, "picture img")
+	return AttrOr(pictureNode, "data-srcset", "")
 }
 
 func GetSoup(url string) *html.Node {
@@ -70,4 +82,10 @@ func buildUrl(regionName, theatreName, date string) string {
 	q.Set("showDate", date)
 	u.RawQuery = q.Encode()
 	return u.String()
+}
+
+func isSameDay(time1, time2 time.Time) bool {
+	return time1.Year() == time2.Year() &&
+		time1.Month() == time2.Month() &&
+		time1.Day() == time2.Day()
 }
