@@ -11,39 +11,44 @@ import (
 )
 
 // const completeUrl = "https://www.cinemark.com/theatres/nc-raleigh/cinemark-bistro-raleigh?showDate=2023-11-15"
-const baseUrl = "https://www.cinemark.com/theatres"
+const baseUrl = "https://www.cinemark.com"
+const theatreUrl = baseUrl + "/theatres"
 const defaultRegion = "nc-raleigh"
 const defaultTheatre = "cinemark-bistro-raleigh"
 
 func ScrapeFunc() {
-	thisWeeksMovies()
+	calendarWeekFilms()
 }
 
-func thisWeeksMovies() {
-	currentTime := time.Now().AddDate(0, 0, 3)
-	lastDay := time.Now().AddDate(0, 0, 6-int(currentTime.Weekday()))
-	fmt.Println(currentTime)
-	fmt.Println(lastDay)
+func calendarWeekFilms() {
+	currentTime := time.Now()
+	lastDay := currentTime.AddDate(0, 0, 6-int(currentTime.Weekday()))
 
-	for currentDay := currentTime; !currentDay.After(lastDay) || isSameDay(currentDay, lastDay); currentDay = currentDay.AddDate(0, 0, 1) {
-		fmt.Printf("%s\n", currentDay.Format("2006-01-02"))
+	films := make(map[Film]bool)
+	for iterDay := currentTime; iterDay.Before(lastDay) || isSameDay(iterDay, lastDay); iterDay = iterDay.AddDate(0, 0, 1) {
+		dateStr := fmt.Sprintf("%s", iterDay.Format("2006-01-02"))
+		appendUniqueFilms(dateStr, &films)
+	}
+	for k := range films {
+		fmt.Println(k)
 	}
 }
 
-func getMovieForDate(currentDate string) {
+func appendUniqueFilms(currentDate string, allFilms *map[Film]bool) {
 	// Date in the format "2006-01-02"
+	fmt.Printf("%s: %d", currentDate, len(*allFilms))
 	url := buildUrl(defaultRegion, defaultTheatre, currentDate)
 	soup := GetSoup(url)
 	filmNodes := QueryAll(soup, "#showTimes .showtimeMovieBlock")
-	fmt.Println(len(filmNodes))
 	for _, filmNode := range filmNodes {
-		film := &Film{
+		film := Film{
 			Title:     getTitle(filmNode),
 			Link:      getLink(filmNode),
 			PosterUrl: getPosterUrl(filmNode),
 		}
-		fmt.Println(film)
+		(*allFilms)[film] = true
 	}
+	fmt.Printf(" -> %d\n", len(*allFilms))
 }
 
 func getTitle(filmNode *html.Node) string {
@@ -52,7 +57,11 @@ func getTitle(filmNode *html.Node) string {
 
 func getLink(filmNode *html.Node) string {
 	linkNode := Query(filmNode, ".movieLink")
-	return AttrOr(linkNode, "href", "")
+	path := AttrOr(linkNode, "href", "")
+	if path == "" {
+		return ""
+	}
+	return baseUrl + path
 }
 
 func getPosterUrl(filmNode *html.Node) string {
@@ -71,7 +80,7 @@ func GetSoup(url string) *html.Node {
 
 func buildUrl(regionName, theatreName, date string) string {
 	// Creating a URL object
-	pathedUrl := fmt.Sprintf("%s/%s/%s", baseUrl, regionName, theatreName)
+	pathedUrl := fmt.Sprintf("%s/%s/%s", theatreUrl, regionName, theatreName)
 	u, err := url.Parse(pathedUrl)
 	if err != nil {
 		fmt.Println("Error parsing URL:", err)
